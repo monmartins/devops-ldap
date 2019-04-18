@@ -9,7 +9,6 @@ services:
     
     image: ldap-app-client:systemd #centos:latest
     container_name: CentOS-client
-    network_mode: host
     tty: true
     volumes:
       - ./:/home/project
@@ -28,7 +27,6 @@ services:
     image: ldap-app:systemd #centos:latest
     container_name: CentOS
     tty: true
-    network_mode: host
     command: /bin/bash -c "/root/init && /bin/bash "
     environment:
       - LDAP_PASSWORD_ADMIN=123123
@@ -46,7 +44,6 @@ services:
     container_name: RubyApp
     image: ruby@sha256:704b3369eb921a8b42239fbfb6c3ea443a72ed5e483be0eb8b97324cca6e4e2b #ruby:alpine
     tty: true
-    network_mode: host
     command: sh -c "gem install net-ldap && sh"
     volumes:
       - ./ruby-app:/home/project
