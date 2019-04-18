@@ -1,0 +1,73 @@
+- hosts: localhost
+  connection: localhost
+  gather_facts: False # Display facts from all hosts and store them indexed by I(hostname) at C(/tmp/facts) if set true
+  vars:
+    instance_type: t2.micro 
+    image: ami-0c55b159cbfafe1f0 
+    key_name: keypair-ldap # keypair 
+    region: us-east-2
+    count: 1
+  vars_files:
+    - aws_keys.yml
+  tasks:
+    - name: SG LDAP
+      ec2_group:
+        name: SG_LDAP
+        description: Security Group LDAP
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        region: "{{ region }}"
+        rules:
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 389
+          to_port: 389
+          cidr_ip: 0.0.0.0/0
+    - name: SG LDAP
+      ec2:
+        key_name: keypair-ldap
+        instance_type: t2.micro
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        image: "{{ image }}"
+        region: "{{ region }}"
+        group: SG_LDAP
+        wait: yes
+        wait_timeout: 100
+        count: 1
+        vpc_subnet_id: subnet-6475151e
+        instance_tags:
+          service: ldap
+        monitoring: yes
+        volumes:
+          - device_name: /dev/xvda
+            volume_type: gp2
+            volume_size: 20
+            delete_on_termination: true
+        assign_public_ip: yes
+      register: ec2_out
+
+    - name: Wait for SSH to come up
+      delegate_to: "{{ item.public_dns_name }}"
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+      with_items: "{{ ec2_out.instances }}"
+
+    - name: Install a list of packages
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - docker
+        - docker-compose
+    - name: example copying file with owner and permissions
+      copy:
+        src: ./.aws_provisioning.retry
+        dest: /home/createuser.rb
+        owner: root
+        group: root
+        mode: 0644

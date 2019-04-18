@@ -1,0 +1,9 @@
+#docker build -t centos-ldap --build-arg LDAP_PASSWORD_ADMIN=123123 . 
+from centos@sha256:8d487d68857f5bc9595793279b33d082b03713341ddec91054382641d14db861
+
+ARG LDAP_PASSWORD_ADMIN
+
+RUN yum install -y authconfig-gtk* nano openldap-clients nss-pam-ldapd
+
+EXPOSE 389
+EXPOSE 636

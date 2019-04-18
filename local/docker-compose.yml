@@ -1,0 +1,77 @@
+version: '3'
+services:
+  ldap-app-client:
+    build:
+      context: ./centos/client
+      dockerfile: dockerfile
+      args:
+        LDAP_PASSWORD_ADMIN: 123123
+    
+    image: ldap-app-client:systemd #centos:latest
+    container_name: CentOS-client
+    network_mode: host
+    tty: true
+    volumes:
+      - ./:/home/project
+    networks:
+        # you may set custom IP addresses
+        net_ldap:
+            ipv4_address: 172.16.238.15
+
+  ldap-app:
+    build:
+      context: ./centos/server
+      dockerfile: dockerfile
+      args:
+        LDAP_PASSWORD_ADMIN: 123123
+    
+    image: ldap-app:systemd #centos:latest
+    container_name: CentOS
+    tty: true
+    network_mode: host
+    command: /bin/bash -c "/root/init && /bin/bash "
+    environment:
+      - LDAP_PASSWORD_ADMIN=123123
+    volumes:
+      - ./:/home/project
+    ports:
+      - 389:389
+    networks:
+        # you may set custom IP addresses
+        net_ldap:
+            ipv4_address: 172.16.238.14
+
+
+  script-ruby-app:
+    container_name: RubyApp
+    image: ruby@sha256:704b3369eb921a8b42239fbfb6c3ea443a72ed5e483be0eb8b97324cca6e4e2b #ruby:alpine
+    tty: true
+    network_mode: host
+    command: sh -c "gem install net-ldap && sh"
+    volumes:
+      - ./ruby-app:/home/project
+    networks:
+        # you may set custom IP addresses
+        net_ldap:
+            ipv4_address: 172.16.238.12
+
+
+  script-ansible-app:
+    container_name: AnsibleApp
+    image: ansible/container-conductor-alpine-3.5@sha256:a16009d8cf4f3f55741abeddb0c92271ae5af89be5413a74b0699c42d5ea493f #ansible/container-conductor-alpine-3.5:0.9.3rc4
+    tty: true
+    command: /bin/sh -c "pip install boto3 && pip install boto && echo nameserver 8.8.8.8 > /etc/resolv.conf && /bin/sh "
+    volumes:
+      - ./ansible-app:/home/project
+    networks:
+        # you may set custom IP addresses
+        net_ldap:
+            ipv4_address: 172.16.238.10
+
+networks:
+    net_ldap:
+      driver: bridge
+      ipam:
+        driver: default
+        config:
+          - subnet: 172.16.238.0/24

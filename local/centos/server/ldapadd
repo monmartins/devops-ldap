@@ -1,0 +1,19 @@
+#!/bin/bash
+
+/bin/init-ldap
+
+#slapd -u ldap -g ldap -d 65
+sleep 5
+
+
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif 
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif
+ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif
+
+ldapadd -x -D "cn=Manager,dc=techinterview,dc=local" -w "${LDAP_PASSWORD_ADMIN}" -f /root/base.ldif
+ldapadd -x -D "cn=Manager,dc=techinterview,dc=local" -w "${LDAP_PASSWORD_ADMIN}" -f /root/users.ldif
+ldapadd -x -D "cn=Manager,dc=techinterview,dc=local" -w "${LDAP_PASSWORD_ADMIN}" -f /root/groups.ldif
+LDAP_PASSWORD_ADMIN=''
+LDAP_PASSWORD_TECMINT=''
+
+ldapsearch -x cn=ldapuser1 -b dc=techinterview,dc=local

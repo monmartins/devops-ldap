@@ -1,0 +1,3 @@
+kill -9 `expr $( cat /var/run/slapd.pid) + 2` 
+sleep 1 
+slapd -h "ldapi:// ldap://" & echo $! > /var/run/slapd.pid

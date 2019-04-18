@@ -1,0 +1,41 @@
+#docker build -t centos-ldap --build-arg LDAP_PASSWORD_ADMIN=123123 . 
+from centos@sha256:8d487d68857f5bc9595793279b33d082b03713341ddec91054382641d14db861
+
+ARG LDAP_PASSWORD_ADMIN
+
+
+RUN yum -y install openssl net-tools openldap* migrationtools && yum clean all 
+
+COPY init-ldap /bin/init-ldap 
+COPY restart-ldap /bin/restart-ldap 
+
+RUN chmod +x /bin/init-ldap && chmod +x /bin/restart-ldap \
+    && slappasswd -s ${LDAP_PASSWORD_ADMIN} $2>> passwd_admin.txt 
+
+COPY olcdatabase.ldif etc/openldap/slapd.d/cn=config/olcDatabase={2}hdb.ldif
+
+RUN echo -en '\nolcRootPW: ' >> etc/openldap/slapd.d/cn=config/olcDatabase={2}hdb.ldif  \
+    && cat /passwd_admin.txt >> etc/openldap/slapd.d/cn=config/olcDatabase={2}hdb.ldif 
+
+COPY olcdatabase-monitor.ldif etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif
+
+RUN  cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG \ 
+    && openssl req -subj "/C=BR/ST=CE/L=Fortaleza/O=RMC Company/OU=RMC/CN=techinterview.local" -new -x509 -nodes -out /etc/pki/tls/certs/techinterview-ldap.pem -keyout /etc/pki/tls/certs/techinterview-ldapkey.pem -days 365 
+
+COPY migrate_common.ph /usr/share/migrationtools/migrate_common.ph
+COPY base.ldif /root/base.ldif
+
+RUN useradd ldapuser1 && useradd ldapuser2 \
+    && echo "ldapuser1" | passwd --stdin ldapuser1 \
+    && echo "ldapuser2" | passwd --stdin ldapuser2 \
+    && grep ":10[0-9][0-9]" /etc/passwd > /root/passwd \
+    && grep ":10[0-9][0-9]" /etc/group > /root/group \
+    && /usr/share/migrationtools/migrate_passwd.pl /root/passwd /root/users.ldif \
+    && /usr/share/migrationtools/migrate_group.pl /root/passwd /root/groups.ldif 
+
+
+COPY ldapadd /root/init
+RUN chmod +x /root/init
+
+EXPOSE 389
+EXPOSE 636
