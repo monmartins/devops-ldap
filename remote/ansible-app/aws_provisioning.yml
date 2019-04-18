@@ -64,10 +64,3 @@
         packages:
         - docker
         - docker-compose
-    - name: example copying file with owner and permissions
-      copy:
-        src: ./.aws_provisioning.retry
-        dest: /home/createuser.rb
-        owner: root
-        group: root
-        mode: 0644
